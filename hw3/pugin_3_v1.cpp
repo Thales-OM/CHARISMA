@@ -26,6 +26,10 @@ void tempDistribution(double tau, double t, double h, double* points, int num_po
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    if (rank == 0) {
+        std::cout << "Starting job" << std::endl;
+    }
+
     // Calculate the chunk size for each process
     int chunkSize = arraySize / size;
     int remainder = arraySize % size;
@@ -47,13 +51,27 @@ void tempDistribution(double tau, double t, double h, double* points, int num_po
 
         // Send and receive neighbor values
         if (rank > 0) {
+            std::cout << "Sending left neighbor by rank " << rank << " to rank " << rank - 1 << std::endl;
             MPI_Send(&localArray[0], 1, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD); // Send leftmost value to left neighbor
-            MPI_Recv(&leftNeighbor, 1, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Receive left neighbor
+            std::cout << "Finished sending left neighbor by rank " << rank << " to rank " << rank - 1 << std::endl;
         }
 
         if (rank < size - 1) {
-            MPI_Send(&localArray.back(), 1, MPI_DOUBLE, rank + 1, 2, MPI_COMM_WORLD); // Send rightmost value to right neighbor
-            MPI_Recv(&rightNeighbor, 1, MPI_DOUBLE, rank + 1, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Receive right neighbor
+            std::cout << "Recieving right neighbor by rank " << rank << " from rank " << rank + 1 << std::endl;
+            MPI_Recv(&rightNeighbor, 1, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Receive right neighbor
+            std::cout << "Finished recieving right neighbor by rank " << rank << " from rank " << rank + 1 << std::endl;
+        }
+
+        if (rank < size - 1) {
+            std::cout << "Sending right neighbor by rank " << rank << " to rank " << rank + 1 << std::endl;
+            MPI_Send(&localArray.back(), 1, MPI_DOUBLE, rank + 1, 1, MPI_COMM_WORLD); // Send rightmost value to right neighbor
+            std::cout << "Finished sending right neighbor by rank " << rank << " to rank " << rank + 1 << std::endl;
+        }
+
+        if (rank > 0) {
+            std::cout << "Recieving left neighbor by rank " << rank << " from rank " << rank - 1 << std::endl;
+            MPI_Recv(&leftNeighbor, 1, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Receive left neighbor
+            std::cout << "Finished recieving left neighbor by rank " << rank << " from rank " << rank - 1 << std::endl;
         }
 
         // Compute new temperature values
@@ -64,6 +82,8 @@ void tempDistribution(double tau, double t, double h, double* points, int num_po
         }
 
         localArray = nextArray; // Update local array for the next time step
+
+        std::cout << "Finished step " << step << " on rank " << rank << std::endl;
     }
 
     // Gather results at the root process
