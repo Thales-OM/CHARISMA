@@ -1,0 +1,1 @@
+ssh -p 2222 -i Keys/auth_key.pem ispugin@cluster.hpc.hse.ru
